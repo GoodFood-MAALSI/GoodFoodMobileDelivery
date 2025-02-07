@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import colors from '../assets/color';
+import CustomButton from '../components/CustomButton';
+import CustomInput from '../components/CustomInput';
+import theme from '../assets/styles/themes';
 
 export default function SignUpScreen({ navigation }: any) {
     const [email, setEmail] = useState('');
@@ -20,34 +22,25 @@ export default function SignUpScreen({ navigation }: any) {
         <View style={styles.container}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
             <Text style={styles.title}>Créer un compte</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Adresse Mail"
-                placeholderTextColor="#B0B0B0"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+            <CustomInput 
+                placeholder="Adresse Mail" 
+                value={email} 
+                onChangeText={setEmail} 
+                keyboardType="email-address" 
             />
-            <TextInput
-                style={styles.input}
-                placeholder="Mot de passe"
-                placeholderTextColor="#B0B0B0"
-                value={password}
-                onChangeText={setPassword}
+            <CustomInput 
+                placeholder="Mot de Passe" 
+                value={password} 
+                onChangeText={setPassword} 
                 secureTextEntry
             />
-            <TextInput
-                style={styles.input}
-                placeholder="Confirmez le mot de passe"
-                placeholderTextColor="#B0B0B0"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
+            <CustomInput 
+                placeholder="Confirmer le mot de passe" 
+                value={password} 
+                onChangeText={setConfirmPassword} 
                 secureTextEntry
             />
-            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-                <Text style={styles.buttonText}>Créer un compte</Text>
-            </TouchableOpacity>
+            <CustomButton text="Créer un compte" onPress={handleSignUp} backgroundColor={theme.colors[5]} textColor='#FFFFFF'/>
         </View>
     );
 }
@@ -58,43 +51,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        padding: 20,
+        padding: theme.spacing.md,
     },
     logo: {
         width: 120,
         height: 120,
-        marginBottom: 20,
+        marginBottom: theme.spacing.md,
     },
     title: {
-        fontSize: 28,
+        fontSize: theme.spacing.fontSize.xxl,
         fontWeight: 'bold',
         color: '#333333',
-        marginBottom: 20,
-    },
-    input: {
-        width: '100%',
-        height: 50,
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        fontSize: 16,
-        color: '#333333',
-    },
-    button: {
-        width: '100%',
-        height: 50,
-        backgroundColor: colors[5],
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+        marginBottom: theme.spacing.sm,
+    }
 });

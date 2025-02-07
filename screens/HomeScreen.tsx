@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import colors from '../assets/color';
+import CustomButton from '../components/CustomButton';
+import CustomTabs from '../components/CustomTabs';
+import CustomCard from '../components/CustomCard';
+import theme from '../assets/styles/themes';
 
 const HomeScreen = ({ navigation }: any) => {
     const [isAvailable, setIsAvailable] = useState(true);
@@ -90,6 +93,30 @@ const HomeScreen = ({ navigation }: any) => {
         }
     };
 
+    const handleCancelOrder = () => {
+        if (!acceptedOrder) return;
+
+        Alert.alert(
+            "Annulation",
+            "Êtes-vous sûr de vouloir annuler cette commande ?",
+            [
+                {
+                    text: "Non",
+                    style: "cancel",
+                },
+                {
+                    text: "Oui",
+                    onPress: () => {
+                        setAvailableOrders((prevOrders) => [...prevOrders, acceptedOrder]);
+                        setAcceptedOrder(null);
+                        Alert.alert("Commande annulée", "Vous pouvez accepter une nouvelle commande.");
+                        setTab("disponibles");
+                    },
+                },
+            ]
+        );
+    };
+
     const handleToggleAvailability = () => {
         if (acceptedOrder && isAvailable) {
             Alert.alert(
@@ -110,31 +137,23 @@ const HomeScreen = ({ navigation }: any) => {
                         {isAvailable ? 'Disponible' : 'Indisponible'}
                     </Text>
                 </Text>
-                <TouchableOpacity style={styles.toggleButton} onPress={handleToggleAvailability}>
-                    <Text style={styles.toggleButtonText}>{isAvailable ? 'Se rendre indisponible' : 'Se rendre disponible'}</Text>
-                </TouchableOpacity>
+                <CustomButton
+                    text={isAvailable ? 'Se rendre indisponible' : 'Se rendre disponible'}
+                    onPress={handleToggleAvailability}
+                    backgroundColor={isAvailable ? theme.colors.danger : theme.colors.success}
+                    size='small'
+                />
             </View>
 
-            <View style={styles.tabs}>
-                <TouchableOpacity
-                    style={[styles.tabButton, tab === 'disponibles' && styles.activeTab]}
-                    onPress={() => setTab('disponibles')}
-                >
-                    <Text style={[styles.tabText, tab === 'disponibles' && styles.activeTabText]}>Commandes disponibles</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, tab === 'enCours' && styles.activeTab]}
-                    onPress={() => setTab('enCours')}
-                >
-                    <Text style={[styles.tabText, tab === 'enCours' && styles.activeTabText]}>Commande en cours</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, tab === 'livrees' && styles.activeTab]}
-                    onPress={() => setTab('livrees')}
-                >
-                    <Text style={[styles.tabText, tab === 'livrees' && styles.activeTabText]}>Commandes livrées</Text>
-                </TouchableOpacity>
-            </View>
+            <CustomTabs
+                tabs={[
+                    { key: 'disponibles', label: 'Commandes disponibles' },
+                    { key: 'enCours', label: 'Commande en cours' },
+                    { key: 'livrees', label: 'Commandes livrées' }
+                ]}
+                activeTab={tab}
+                onTabChange={setTab}
+            />
 
             <MapView
                 key={acceptedOrder ? acceptedOrder.id : 'default'}
@@ -178,26 +197,17 @@ const HomeScreen = ({ navigation }: any) => {
                                     data={availableOrders}
                                     keyExtractor={(item) => item.id}
                                     renderItem={({ item }) => (
-                                        <View style={styles.orderCard}>
-                                            <Text style={styles.orderText}>
-                                                <Text style={styles.orderLabel}>Restaurant : </Text>
-                                                {item.restaurant}
-                                            </Text>
-                                            <Text style={styles.orderText}>
-                                                <Text style={styles.orderLabel}>Adresse : </Text>
-                                                {item.restaurantAddress}
-                                            </Text>
-                                            <Text style={styles.orderText}>
-                                                <Text style={styles.orderLabel}>Gain : </Text>
-                                                {item.price} €
-                                            </Text>
-                                            <TouchableOpacity
-                                                style={styles.acceptButton}
-                                                onPress={() => handleAcceptOrder(item)}
-                                            >
-                                                <Text style={styles.acceptButtonText}>Accepter</Text>
-                                            </TouchableOpacity>
-                                        </View>
+                                        <CustomCard
+                                            title={item.restaurant}
+                                            details={[
+                                                { label: 'Adresse du restaurant', value: item.restaurantAddress },
+                                                { label: 'Adresse client', value: item.clientAddress },
+                                                { label: 'Gain', value: `${item.price} €` },
+                                            ]}
+                                            buttons={[
+                                                { text: 'Accepter', onPress: () => handleAcceptOrder(item), backgroundColor: theme.colors.success },
+                                            ]}
+                                        />
                                     )}
                                 />
                             </>
@@ -214,30 +224,18 @@ const HomeScreen = ({ navigation }: any) => {
                 {tab === 'enCours' && acceptedOrder && (
                     <>
                         <Text style={styles.ordersTitle}>Commande en cours</Text>
-                        <View style={styles.orderCard}>
-                            <Text style={styles.orderText}>
-                                <Text style={styles.orderLabel}>Restaurant : </Text>
-                                {acceptedOrder.restaurant}
-                            </Text>
-                            <Text style={styles.orderText}>
-                                <Text style={styles.orderLabel}>Adresse du restaurant : </Text>
-                                {acceptedOrder.restaurantAddress}
-                            </Text>
-                            <Text style={styles.orderText}>
-                                <Text style={styles.orderLabel}>Adresse client : </Text>
-                                {acceptedOrder.clientAddress}
-                            </Text>
-                            <Text style={styles.orderText}>
-                                <Text style={styles.orderLabel}>Gain : </Text>
-                                {acceptedOrder.price} €
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.deliveredButton}
-                                onPress={handleDeliveredOrder}
-                            >
-                                <Text style={styles.deliveredButtonText}>Livré</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <CustomCard
+                            title={acceptedOrder.restaurant}
+                            details={[
+                                { label: 'Adresse du restaurant', value: acceptedOrder.restaurantAddress },
+                                { label: 'Adresse client', value: acceptedOrder.clientAddress },
+                                { label: 'Gain', value: `${acceptedOrder.price} €` },
+                            ]}
+                            buttons={[
+                                { text: 'Livré', onPress: handleDeliveredOrder, backgroundColor: theme.colors.primary },
+                                { text: 'Annulé', onPress: handleCancelOrder, backgroundColor: theme.colors.danger }
+                            ]}
+                        />
                     </>
                 )}
 
@@ -248,22 +246,17 @@ const HomeScreen = ({ navigation }: any) => {
                             data={deliveredOrders}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => (
-                                <View style={styles.orderCard}>
-                                    <Text style={styles.orderText}>
-                                        <Text style={styles.orderLabel}>Restaurant : </Text>
-                                        {item.restaurant}
-                                    </Text>
-                                    <Text style={styles.orderText}>
-                                        <Text style={styles.orderLabel}>Adresse client : </Text>
-                                        {item.clientAddress}
-                                    </Text>
-                                    <Text style={styles.orderText}>
-                                        <Text style={styles.orderLabel}>Gain : </Text>
-                                        {item.price} €
-                                    </Text>
-                                </View>
+                                <CustomCard
+                                    title={item.restaurant}
+                                    details={[
+                                        { label: 'Adresse client', value: item.clientAddress },
+                                        { label: 'Gain', value: `${item.price} €` },
+                                    ]}
+                                    buttons={[]}
+                                />
                             )}
                         />
+
                     </>
                 )}
             </View>
@@ -275,20 +268,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
-    },
-    menuButton: {
-        position: 'absolute',
-        top: 40,
-        left: 20,
-        zIndex: 10,
-        backgroundColor: '#007BFF',
-        padding: 10,
-        borderRadius: 5,
-    },
-    menuText: {
-        color: '#fff',
-        fontSize: 24,
-        fontWeight: 'bold',
     },
     title: {
         fontSize: 20,
@@ -315,39 +294,6 @@ const styles = StyleSheet.create({
         color: '#FF5722',
         fontWeight: 'bold',
     },
-    toggleButton: {
-        paddingVertical: 5,
-        paddingHorizontal: 15,
-        backgroundColor: colors[10],
-        borderRadius: 5,
-    },
-    toggleButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    tabs: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        backgroundColor: '#F8F9FA',
-    },
-    tabButton: {
-        paddingVertical: 10,
-        flex: 1,
-        alignItems: 'center',
-    },
-    activeTab: {
-        borderBottomWidth: 2,
-        borderBottomColor: colors[7],
-    },
-    tabText: {
-        fontSize: 16,
-        color: '#666666',
-    },
-    activeTabText: {
-        color: colors[7],
-        fontWeight: 'bold',
-    },
     map: {
         flex: 1.5,
     },
@@ -355,54 +301,11 @@ const styles = StyleSheet.create({
         flex: 2,
         padding: 15,
     },
-    orderInfo: {
-        marginBottom: 10,
-    },
     ordersTitle: {
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 10,
         color: '#333333',
-    },
-    orderCard: {
-        padding: 15,
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-    },
-    orderText: {
-        fontSize: 16,
-        color: '#333333',
-        marginBottom: 5,
-    },
-    orderLabel: {
-        fontWeight: 'bold',
-    },
-    acceptButton: {
-        backgroundColor: colors[4],
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 5,
-        alignSelf: 'flex-end',
-    },
-    acceptButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    deliveredButton: {
-        backgroundColor: colors[10],
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 5,
-        alignSelf: 'flex-end',
-    },
-    deliveredButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-        fontSize: 16,
     },
     unavailableContainer: {
         flex: 1,
@@ -412,7 +315,7 @@ const styles = StyleSheet.create({
     },
     unavailableText: {
         fontSize: 16,
-        color: colors[7],
+        color: theme.colors[7],
         textAlign: 'center',
         fontWeight: 'bold',
     },
