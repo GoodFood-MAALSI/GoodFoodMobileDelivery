@@ -4,6 +4,7 @@ import CustomCard from '../components/CustomCard';
 import CustomButton from '../components/CustomButton';
 import { LineChart } from 'react-native-chart-kit';
 import theme from '../assets/styles/themes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const formatDate = (date: Date) => {
   return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' }).format(date);
@@ -104,32 +105,34 @@ const StatsScreen = () => {
   );
 
   return (
-    <FlatList
-      ListHeaderComponent={renderHeader}
-      data={displayedOrders}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <CustomCard
-          title={item.restaurant}
-          details={[
-            { label: 'Date', value: formatDate(new Date(item.date)) },
-            { label: 'Gain', value: `${item.price} €` },
-          ]}
-          buttons={[]}
-        />
-      )}
-      contentContainerStyle={styles.container}
-      ListFooterComponent={
-        deliveredOrders.length > 5 ? (
-          <CustomButton
-            text={showAllOrders ? 'Voir moins' : 'Voir plus'}
-            onPress={() => setShowAllOrders(!showAllOrders)}
-            backgroundColor={theme.colors.primary}
-            size="medium"
+    <SafeAreaView>
+      <FlatList
+        ListHeaderComponent={renderHeader}
+        data={displayedOrders}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <CustomCard
+            title={item.restaurant}
+            details={[
+              { label: 'Date', value: formatDate(new Date(item.date)) },
+              { label: 'Gain', value: `${item.price} €` },
+            ]}
+            buttons={[]}
           />
-        ) : null
-      }
-    />
+        )}
+        contentContainerStyle={styles.container}
+        ListFooterComponent={
+          deliveredOrders.length > 5 ? (
+            <CustomButton
+              text={showAllOrders ? 'Voir moins' : 'Voir plus'}
+              onPress={() => setShowAllOrders(!showAllOrders)}
+              backgroundColor={theme.colors.primary}
+              size="medium"
+            />
+          ) : null
+        }
+      />
+    </SafeAreaView>
   );
 };
 

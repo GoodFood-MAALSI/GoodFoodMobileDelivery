@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'reac
 import CustomButton from '../components/CustomButton';
 import CustomInput from '../components/CustomInput';
 import theme from '../assets/styles/themes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignUpScreen({ navigation }: any) {
     const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function SignUpScreen({ navigation }: any) {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
             <Text style={styles.title}>Créer un compte</Text>
             <CustomInput 
@@ -41,7 +42,7 @@ export default function SignUpScreen({ navigation }: any) {
                 secureTextEntry
             />
             <CustomButton text="Créer un compte" onPress={handleSignUp} backgroundColor={theme.colors[5]} textColor='#FFFFFF'/>
-        </View>
+        </SafeAreaView>
     );
 }
 

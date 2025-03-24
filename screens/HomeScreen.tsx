@@ -6,6 +6,7 @@ import CustomButton from '../components/CustomButton';
 import CustomTabs from '../components/CustomTabs';
 import CustomCard from '../components/CustomCard';
 import theme from '../assets/styles/themes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const HomeScreen = ({ navigation }: any) => {
     const [isAvailable, setIsAvailable] = useState(true);
@@ -129,7 +130,7 @@ const HomeScreen = ({ navigation }: any) => {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.statusContainer}>
                 <Text style={styles.statusText}>
                     Statut :{' '}
@@ -260,7 +261,7 @@ const HomeScreen = ({ navigation }: any) => {
                     </>
                 )}
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 

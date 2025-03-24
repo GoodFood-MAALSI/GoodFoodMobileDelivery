@@ -4,6 +4,7 @@ import colors from '../assets/styles/colors';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import theme from '../assets/styles/themes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ForgotPasswordScreen({ navigation }: any) {
     const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
             <Text style={styles.title}>Mot de passe oublié</Text>
             <Text style={styles.subtitle}>
@@ -27,7 +28,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                 keyboardType="email-address" 
             />
             <CustomButton text="Envoyer le lien" onPress={handlePasswordReset} backgroundColor={theme.colors[5]} textColor='#FFFFFF'/>
-        </View>
+        </SafeAreaView>
     );
 }
 

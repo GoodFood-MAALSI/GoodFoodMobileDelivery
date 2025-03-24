@@ -3,13 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'reac
 import CustomButton from '../components/CustomButton';
 import CustomInput from '../components/CustomInput';
 import theme from '../assets/styles/themes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen({ navigation }: any) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleLogin = () => {
-        navigation.navigate('Home');
+        navigation.navigate('Tabs', { screen: 'Accueil' });
     };
 
     const handleForgotPassword = () => {
@@ -21,25 +22,25 @@ export default function LoginScreen({ navigation }: any) {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <Image source={require('../assets/logo.png')} style={styles.logo} />
             <Text style={styles.title}>Bienvenue</Text>
             <Text style={styles.subtitle}>Connectez-vous pour continuer</Text>
 
-            <CustomInput 
-                placeholder="Adresse Mail" 
-                value={email} 
-                onChangeText={setEmail} 
-                keyboardType="email-address" 
+            <CustomInput
+                placeholder="Adresse Mail"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
             />
-            <CustomInput 
-                placeholder="Mot de Passe" 
-                value={password} 
-                onChangeText={setPassword} 
+            <CustomInput
+                placeholder="Mot de Passe"
+                value={password}
+                onChangeText={setPassword}
                 secureTextEntry
             />
 
-            <CustomButton text="Se connecter" onPress={handleLogin} backgroundColor={theme.colors[5]} textColor='#FFFFFF'/>
+            <CustomButton text="Se connecter" onPress={handleLogin} backgroundColor={theme.colors[5]} textColor='#FFFFFF' />
 
             <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
                 <Text style={styles.forgotPasswordText}>Mot de passe oublié?</Text>
@@ -51,8 +52,7 @@ export default function LoginScreen({ navigation }: any) {
                     Créez-en un
                 </Text>
             </Text>
-
-        </View>
+        </SafeAreaView>
     );
 }
 
