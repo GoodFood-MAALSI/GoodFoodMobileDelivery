@@ -5,6 +5,7 @@ import CustomButton from '../components/CustomButton';
 import { LineChart } from 'react-native-chart-kit';
 import theme from '../assets/styles/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import styles from '../assets/styles/StatsStyles';
 
 const formatDate = (date: Date) => {
   return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' }).format(date);
@@ -87,8 +88,8 @@ const StatsScreen = () => {
         height={220}
         yAxisSuffix="€"
         chartConfig={{
-          backgroundGradientFrom: theme.colors.primary,
-          backgroundGradientTo: theme.colors.secondary,
+          backgroundGradientFrom: '#ffffff',
+          backgroundGradientTo: '#ffffff',
           decimalPlaces: 0,
           color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -135,29 +136,5 @@ const StatsScreen = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    padding: theme.spacing.md,
-  },
-  title: {
-    fontSize: theme.spacing.fontSize.xl,
-    fontWeight: 'bold',
-    marginBottom: theme.spacing.md,
-    textAlign: 'center',
-    color: theme.colors.text,
-  },
-  subTitle: {
-    fontSize: theme.spacing.fontSize.lg,
-    fontWeight: 'bold',
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.text,
-  },
-  chart: {
-    borderRadius: theme.spacing.borderRadius.md,
-    marginBottom: theme.spacing.md,
-    alignSelf: 'center',
-  },
-});
 
 export default StatsScreen;

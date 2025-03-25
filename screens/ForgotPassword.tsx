@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import colors from '../assets/styles/colors';
+import { Text, Image } from 'react-native';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import theme from '../assets/styles/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import styles from '../assets/styles/ForgotPasswordStyles';
 
 export default function ForgotPasswordScreen({ navigation }: any) {
     const [email, setEmail] = useState('');
@@ -32,28 +32,4 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        padding: theme.spacing.md,
-    },
-    logo: {
-        width: 120,
-        height: 120,
-        marginBottom: theme.spacing.md,
-    },
-    title: {
-        fontSize: theme.spacing.fontSize.xxl,
-        fontWeight: 'bold',
-        color: '#333333',
-        marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-        fontSize: theme.spacing.fontSize.md,
-        color: '#666666',
-        marginBottom: theme.spacing.lg,
-    }
-});
+
