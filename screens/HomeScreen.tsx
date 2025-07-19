@@ -14,6 +14,22 @@ import { useUser } from '../Context/UserContext';
 import { useCreateDelivery } from '../hooks/orders/UseCreateDelivery';
 import { useVerifyDeliveryCode } from '../hooks/orders/UseVerifyCode';
 
+// Fonction pour calculer la distance en km entre deux points
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Rayon de la Terre en kilomètres
+    const dLat = (lat2 - lat1) * (Math.PI / 180); // Conversion en radians
+    const dLon = (lon2 - lon1) * (Math.PI / 180); // Conversion en radians
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Distance en kilomètres
+
+    return distance; // Retourne la distance en kilomètres
+};
+
 const HomeScreen = ({ navigation }: any) => {
     const [isAvailable, setIsAvailable] = useState(true);
     const [currentLocation, setCurrentLocation] = useState<any>(null);
@@ -28,8 +44,8 @@ const HomeScreen = ({ navigation }: any) => {
     const { verifyDeliveryCode, result } = useVerifyDeliveryCode();
 
     const { orders: availableOrders, refetch: refetchAvailableOrders } = useAvailableOrders(
-        currentLocation?.latitude,
-        currentLocation?.longitude,
+        50.6357,
+        3.0601,
         10000,
         1,
         10
@@ -156,6 +172,15 @@ const HomeScreen = ({ navigation }: any) => {
         setIsAvailable(!isAvailable);
     };
 
+    const getDeliveryDistance = (restaurantLat: number, restaurantLon: number) => {
+        if (!currentLocation) return 0;
+        return calculateDistance(currentLocation.latitude, currentLocation.longitude, restaurantLat, restaurantLon);
+    };
+
+    const getRestaurantToClientDistance = (restaurantLat: number, restaurantLon: number, clientLat: number, clientLon: number) => {
+        return calculateDistance(restaurantLat, restaurantLon, clientLat, clientLon);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.statusContainer}>
@@ -185,7 +210,7 @@ const HomeScreen = ({ navigation }: any) => {
             />
 
             <MapView
-                key={acceptedOrders ? acceptedOrders.id : 'default'}
+                key={acceptedOrders ? acceptedOrders : 'default'}
                 style={styles.map}
                 region={{
                     latitude: (acceptedOrders && acceptedOrders[0]?.restaurant?.lat) || (orderToDeliver && orderToDeliver[0]?.lat) || currentLocation?.latitude || 50.6357,
@@ -197,18 +222,20 @@ const HomeScreen = ({ navigation }: any) => {
                 {currentLocation && (
                     <Marker coordinate={currentLocation} title="Votre position" pinColor="blue" />
                 )}
+
                 {acceptedOrders && acceptedOrders.map((order) => {
-                    const clientLocation = {
-                        latitude: parseFloat(order.lat),
-                        longitude: parseFloat(order.long),
+                    const restaurantLocation = {
+                        latitude: parseFloat(order?.restaurant?.lat),
+                        longitude: parseFloat(order?.restaurant?.long),
                     };
+                    const distance = getDeliveryDistance(restaurantLocation.latitude, restaurantLocation.longitude);
                     return (
                         <Marker
-                            key={order.client_id + '_client'}
-                            coordinate={clientLocation}
-                            title="Adresse client"
-                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
-                            pinColor="red"
+                            key={order?.restaurant_id + '_restaurant'}
+                            coordinate={restaurantLocation}
+                            title="Adresse restaurant"
+                            description={`Adresse: ${order?.restaurant?.street_number} ${order?.restaurant?.street}, ${order?.restaurant?.city} ${order?.restaurant?.postal_code}, ${order?.restaurant?.country} | Distance: ${distance.toFixed(2)} km`}
+                            pinColor="green"
                         />
                     );
                 })}
@@ -218,29 +245,14 @@ const HomeScreen = ({ navigation }: any) => {
                         latitude: parseFloat(order.lat),
                         longitude: parseFloat(order.long),
                     };
+                    const distance = getRestaurantToClientDistance(parseFloat(order?.restaurant?.lat), parseFloat(order?.restaurant?.long), clientLocation.latitude, clientLocation.longitude);
                     return (
                         <Marker
                             key={order.client_id + '_client'}
                             coordinate={clientLocation}
                             title="Adresse client"
-                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
+                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country} | Distance: ${distance.toFixed(2)} km`}
                             pinColor="red"
-                        />
-                    );
-                })}
-
-                {acceptedOrders && acceptedOrders.map((order) => {
-                    const restaurantLocation = {
-                        latitude: parseFloat(order?.restaurant?.lat),
-                        longitude: parseFloat(order?.restaurant?.long),
-                    };
-                    return (
-                        <Marker
-                            key={order?.restaurant_id + '_client'}
-                            coordinate={restaurantLocation}
-                            title="Adresse client"
-                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
-                            pinColor="green"
                         />
                     );
                 })}
@@ -256,18 +268,27 @@ const HomeScreen = ({ navigation }: any) => {
                             renderItem={({ item }) => {
                                 const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
                                 const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
-
+                                const restaurantLocation = {
+                                    latitude: parseFloat(item?.restaurant?.lat),
+                                    longitude: parseFloat(item?.restaurant?.long),
+                                };
+                                const clientLocation = {
+                                    latitude: parseFloat(item?.lat),
+                                    longitude: parseFloat(item?.long),
+                                };
+                                const restaurantDistance = getDeliveryDistance(restaurantLocation.latitude, restaurantLocation.longitude);
+                                const clientDistance = getRestaurantToClientDistance(restaurantLocation.latitude, restaurantLocation.longitude, clientLocation.latitude, clientLocation.longitude);
                                 return (
                                     <CustomCard
                                         title={item?.restaurant?.name}
                                         details={[
                                             {
                                                 label: 'Adresse du restaurant',
-                                                value: restaurantAddress
+                                                value: `${restaurantAddress} | ${restaurantDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Adresse client',
-                                                value: clientAddress
+                                                value: `${clientAddress} | ${clientDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Gain',
@@ -296,18 +317,27 @@ const HomeScreen = ({ navigation }: any) => {
                             renderItem={({ item }) => {
                                 const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
                                 const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
-
+                                const restaurantLocation = {
+                                    latitude: parseFloat(item?.restaurant?.lat),
+                                    longitude: parseFloat(item?.restaurant?.long),
+                                };
+                                const clientLocation = {
+                                    latitude: parseFloat(item?.lat),
+                                    longitude: parseFloat(item?.long),
+                                };
+                                const restaurantDistance = getDeliveryDistance(restaurantLocation.latitude, restaurantLocation.longitude);
+                                const clientDistance = getRestaurantToClientDistance(restaurantLocation.latitude, restaurantLocation.longitude, clientLocation.latitude, clientLocation.longitude);
                                 return (
                                     <CustomCard
                                         title={item?.restaurant?.name}
                                         details={[
                                             {
                                                 label: 'Adresse du restaurant',
-                                                value: restaurantAddress
+                                                value: `${restaurantAddress} | ${restaurantDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Adresse client',
-                                                value: clientAddress
+                                                value: `${clientAddress} | ${clientDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Gain',
@@ -341,18 +371,27 @@ const HomeScreen = ({ navigation }: any) => {
                             renderItem={({ item }) => {
                                 const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
                                 const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
-
+                                const restaurantLocation = {
+                                    latitude: parseFloat(item?.restaurant?.lat),
+                                    longitude: parseFloat(item?.restaurant?.long),
+                                };
+                                const clientLocation = {
+                                    latitude: parseFloat(item?.lat),
+                                    longitude: parseFloat(item?.long),
+                                };
+                                const restaurantDistance = getDeliveryDistance(restaurantLocation.latitude, restaurantLocation.longitude);
+                                const clientDistance = getRestaurantToClientDistance(restaurantLocation.latitude, restaurantLocation.longitude, clientLocation.latitude, clientLocation.longitude);
                                 return (
                                     <CustomCard
                                         title={item?.restaurant?.name}
                                         details={[
                                             {
                                                 label: 'Adresse du restaurant',
-                                                value: restaurantAddress
+                                                value: `${restaurantAddress} | ${restaurantDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Adresse client',
-                                                value: clientAddress
+                                                value: `${clientAddress} | ${clientDistance.toFixed(2)} km`
                                             },
                                             {
                                                 label: 'Gain',
