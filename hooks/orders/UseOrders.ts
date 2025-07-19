@@ -6,7 +6,6 @@ export const useAvailableOrders = (lat: number, lon: number, perimeter: number, 
   const [error, setError] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
-    console.log("Fetching available orders...");
     setLoading(true);
     try {
       const response = await fetch(
@@ -14,7 +13,6 @@ export const useAvailableOrders = (lat: number, lon: number, perimeter: number, 
       );
       const data = await response.json();
       if (response.ok) {
-        console.log("Orders fetched successfully");
         setOrders(data.data.orders);
       } else {
         setError('Erreur lors de la récupération des commandes disponibles');
