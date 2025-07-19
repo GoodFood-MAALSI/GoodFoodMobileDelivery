@@ -185,11 +185,11 @@ const HomeScreen = ({ navigation }: any) => {
             />
 
             <MapView
-                key={acceptedOrders ? acceptedOrders?.id : 'default'}
+                key={acceptedOrders ? acceptedOrders.id : 'default'}
                 style={styles.map}
                 region={{
-                    latitude: currentLocation?.latitude || 50.6357,
-                    longitude: currentLocation?.longitude || 3.0601,
+                    latitude: (acceptedOrders && acceptedOrders[0]?.restaurant?.lat) || (orderToDeliver && orderToDeliver[0]?.lat) || currentLocation?.latitude || 50.6357,
+                    longitude: (acceptedOrders && acceptedOrders[0]?.restaurant?.long) || (orderToDeliver && orderToDeliver[0]?.long) || currentLocation?.longitude || 3.0601,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                 }}
@@ -204,11 +204,43 @@ const HomeScreen = ({ navigation }: any) => {
                     };
                     return (
                         <Marker
-                            key={order.id + '_client'}
+                            key={order.client_id + '_client'}
                             coordinate={clientLocation}
                             title="Adresse client"
                             description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
                             pinColor="red"
+                        />
+                    );
+                })}
+
+                {orderToDeliver && orderToDeliver.map((order) => {
+                    const clientLocation = {
+                        latitude: parseFloat(order.lat),
+                        longitude: parseFloat(order.long),
+                    };
+                    return (
+                        <Marker
+                            key={order.client_id + '_client'}
+                            coordinate={clientLocation}
+                            title="Adresse client"
+                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
+                            pinColor="red"
+                        />
+                    );
+                })}
+
+                {acceptedOrders && acceptedOrders.map((order) => {
+                    const restaurantLocation = {
+                        latitude: parseFloat(order?.restaurant?.lat),
+                        longitude: parseFloat(order?.restaurant?.long),
+                    };
+                    return (
+                        <Marker
+                            key={order?.restaurant_id + '_client'}
+                            coordinate={restaurantLocation}
+                            title="Adresse client"
+                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
+                            pinColor="green"
                         />
                     );
                 })}
