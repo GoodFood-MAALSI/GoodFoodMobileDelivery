@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Alert, TextInput, Modal, Button } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import CustomButton from '../components/CustomButton';
@@ -12,15 +12,20 @@ import { useAvailableOrders, useOrders } from '../hooks/orders/UseOrders';
 import { useUpdateOrderStatus } from '../hooks/orders/UseUpdateOrderStatus';
 import { useUser } from '../Context/UserContext';
 import { useCreateDelivery } from '../hooks/orders/UseCreateDelivery';
+import { useVerifyDeliveryCode } from '../hooks/orders/UseVerifyCode';
 
 const HomeScreen = ({ navigation }: any) => {
     const [isAvailable, setIsAvailable] = useState(true);
     const [currentLocation, setCurrentLocation] = useState<any>(null);
     const [tab, setTab] = useState<'Disponibles' | 'enCours' | 'enLivraison' | 'Livrees'>('Disponibles');
+    const [code, setCode] = useState<string>('');
+    const [modalVisible, setModalVisible] = useState(false);
+
     const { user } = useUser();
     const delivererId = user?.id;
     const { updateOrderStatus } = useUpdateOrderStatus();
     const { createDelivery } = useCreateDelivery();
+    const { verifyDeliveryCode, result } = useVerifyDeliveryCode();
 
     const { orders: availableOrders, refetch: refetchAvailableOrders } = useAvailableOrders(
         currentLocation?.latitude,
@@ -92,12 +97,26 @@ const HomeScreen = ({ navigation }: any) => {
 
     const handleDeliveredOrder = async (order: any) => {
         if (orderToDeliver.length > 0) {
-            await updateOrderStatus(order?.id, 5);
-            Alert.alert('Commande livrée', 'Vous pouvez maintenant accepter une nouvelle commande.');
-            setTab('Livrees');
+            setModalVisible(true);
+        }
+    };
 
-            refetchOrderToDeliver();
-            refetchDeliveredOrders();
+    const handleModalSubmit = async () => {
+        if (code) {
+            await verifyDeliveryCode(orderToDeliver[0].id, code);
+
+            if (result) {
+                await updateOrderStatus(orderToDeliver[0].id, 5);
+                Alert.alert('Commande livrée', 'Vous pouvez maintenant accepter une nouvelle commande.');
+                setTab('Livrees');
+                refetchOrderToDeliver();
+                refetchDeliveredOrders();
+                setModalVisible(false);
+            } else {
+                Alert.alert('Erreur', 'Le code de vérification est incorrect.');
+            }
+        } else {
+            Alert.alert('Erreur', 'Veuillez entrer un code de vérification valide.');
         }
     };
 
@@ -125,7 +144,6 @@ const HomeScreen = ({ navigation }: any) => {
             ]
         );
     };
-
 
     const handleToggleAvailability = () => {
         if ((acceptedOrders.length > 0 || orderToDeliver.length > 0) && isAvailable) {
@@ -194,39 +212,7 @@ const HomeScreen = ({ navigation }: any) => {
                         />
                     );
                 })}
-                {/* {acceptedOrders && acceptedOrders.map((order) => {
-                    const restaurantLocation = {
-                        latitude: parseFloat(order.restaurant?.lat),
-                        longitude: parseFloat(order.restaurant?.long),
-                    };
-                    return (
-                        <Marker
-                            key={order.id}
-                            coordinate={restaurantLocation}
-                            title={`Restaurant: ${order.restaurant?.name}`}
-                            description={`Adresse: ${order.restaurant?.street_number} ${order.restaurant?.street}, ${order.restaurant?.city} ${order.restaurant?.postal_code}, ${order.restaurant?.country}`}
-                            pinColor="green"
-                        />
-                    );
-                })}
-
-                {orderToDeliver && orderToDeliver.map((order) => {
-                    const clientLocation = {
-                        latitude: parseFloat(order.lat),
-                        longitude: parseFloat(order.long),
-                    };
-                    return (
-                        <Marker
-                            key={order.id + '_client'}
-                            coordinate={clientLocation}
-                            title="Adresse client"
-                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
-                            pinColor="red"
-                        />
-                    );
-                })} */}
             </MapView>
-
 
             <View style={styles.ordersContainer}>
                 {tab === 'Disponibles' && isAvailable && (
@@ -386,6 +372,25 @@ const HomeScreen = ({ navigation }: any) => {
                     </>
                 )}
             </View>
+            <Modal
+                visible={modalVisible}
+                animationType="slide"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalcontainer}>
+                    <Text style={styles.modaltitle}>Entrez le code de vérification de la livraison</Text>
+                    <TextInput
+                        style={styles.modalinput}
+                        placeholder="Code de vérification"
+                        value={code}
+                        onChangeText={setCode}
+                    />
+                    <View style={styles.modalbuttonContainer}>
+                        <Button title="Valider" onPress={handleModalSubmit} color={theme.colors.success} />
+                        <Button title="Annuler" onPress={() => setModalVisible(false)} color={theme.colors.danger} />
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
