@@ -1,58 +1,60 @@
-import React, { useState } from 'react';
-import { Text, TouchableOpacity, Image } from 'react-native';
-import CustomButton from '../components/CustomButton';
-import CustomInput from '../components/CustomInput';
-import theme from '../assets/styles/themes';
+import React from 'react';
+import { Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLogin } from '../hooks/auth/UseLogin';
 import styles from '../assets/styles/LoginStyles';
+import colors from '../assets/styles/colors';
 
 export default function LoginScreen({ navigation }: any) {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+  const { email, setEmail, password, setPassword, error, isLoading, handleLogin } = useLogin();
 
-    const handleLogin = () => {
-        navigation.navigate('Tabs', { screen: 'Accueil' });
-    };
+  const onLoginPress = async () => {
+    const success = await handleLogin();
+    if (success) {
+      navigation.navigate('Tabs', { screen: 'Accueil' });
+    }
+  };
 
-    const handleForgotPassword = () => {
-        navigation.navigate('ForgotPassword');
-    };
+  return (
+    <SafeAreaView style={styles.container}>
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <Text style={styles.title}>Bienvenue</Text>
+      <Text style={styles.subtitle}>Connectez-vous pour continuer</Text>
 
-    const handleSignUp = () => {
-        navigation.navigate('SignUp');
-    };
+      {error && <Text style={{ color: colors.danger }}>{error}</Text>}
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <Image source={require('../assets/logo.png')} style={styles.logo} />
-            <Text style={styles.title}>Bienvenue</Text>
-            <Text style={styles.subtitle}>Connectez-vous pour continuer</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Adresse Mail"
+        placeholderTextColor="#B0B0B0"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Mot de Passe"
+        placeholderTextColor="#B0B0B0"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
 
-            <CustomInput
-                placeholder="Adresse Mail"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-            />
-            <CustomInput
-                placeholder="Mot de Passe"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
+      <TouchableOpacity style={styles.button} onPress={onLoginPress} disabled={isLoading}>
+        <Text style={styles.buttonText}>{isLoading ? 'Chargement...' : 'Se connecter'}</Text>
+      </TouchableOpacity>
 
-            <CustomButton text="Se connecter" onPress={handleLogin} backgroundColor={theme.colors[5]} textColor='#FFFFFF' />
+      <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate('ForgotPassword')}>
+        <Text style={styles.forgotPasswordText}>Mot de passe oublié?</Text>
+      </TouchableOpacity>
 
-            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-                <Text style={styles.forgotPasswordText}>Mot de passe oublié?</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.footerText}>
-                Vous n'avez pas de compte?{' '}
-                <Text style={styles.signUpText} onPress={handleSignUp}>
-                    Créez-en un
-                </Text>
-            </Text>
-        </SafeAreaView>
-    );
+      <Text style={styles.footerText}>
+        Vous n'avez pas de compte?{' '}
+        <Text style={styles.signUpText} onPress={() => navigation.navigate('SignUp')}>
+          Créez-en un
+        </Text>
+      </Text>
+    </SafeAreaView>
+  );
 }

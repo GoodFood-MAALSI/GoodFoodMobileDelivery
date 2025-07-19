@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Dimensions, Alert } from 'react-native';
 import CustomCard from '../components/CustomCard';
 import CustomButton from '../components/CustomButton';
 import { LineChart } from 'react-native-chart-kit';
-import theme from '../assets/styles/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import theme from '../assets/styles/themes';
+import { useOrders } from '../hooks/orders/UseOrders';
 import styles from '../assets/styles/StatsStyles';
+import { useUser } from '../Context/UserContext';
 
 const formatDate = (date: Date) => {
   return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' }).format(date);
@@ -20,13 +22,14 @@ const getLast7Days = () => {
   }).reverse();
 };
 
-const getEarningsForLast7Days = (orders: { date: string; price: number }[]) => {
+const getEarningsForLast7Days = (orders: { created_at: string; delivery_costs: string }[]) => {
   const last7Days = getLast7Days();
   const groupedData: { [date: string]: number } = {};
 
   orders.forEach(order => {
-    const formattedDate = formatDate(new Date(order.date));
-    groupedData[formattedDate] = (groupedData[formattedDate] || 0) + order.price;
+    const formattedDate = formatDate(new Date(order.created_at));
+    const totalPrice = parseFloat(order.delivery_costs);
+    groupedData[formattedDate] = (groupedData[formattedDate] || 0) + totalPrice;
   });
 
   return last7Days.map(date => ({
@@ -36,22 +39,25 @@ const getEarningsForLast7Days = (orders: { date: string; price: number }[]) => {
 };
 
 const StatsScreen = () => {
+  const { user } = useUser();
   const [showAllOrders, setShowAllOrders] = useState(false);
 
-  const deliveredOrders = [
-    { id: '1', restaurant: 'Pizzeria Luigi', date: '2025-02-06', price: 12 },
-    { id: '2', restaurant: 'Sushi Zen', date: '2025-02-04', price: 9 },
-    { id: '3', restaurant: 'Burger King', date: '2025-02-03', price: 19 },
-    { id: '4', restaurant: 'La Crêperie', date: '2025-02-02', price: 12 },
-    { id: '5', restaurant: 'La Crêperie', date: '2025-02-01', price: 17 },
-    { id: '6', restaurant: 'La Crêperie', date: '2025-01-31', price: 8 },
-    { id: '7', restaurant: 'Sushi Zen', date: '2025-02-04', price: 29 },
-    { id: '8', restaurant: 'La Crêperie', date: '2025-01-30', price: 2 },
-  ];
+  const { orders: deliveredOrders, loading: loadingDeliveredOrders, error: deliveredOrdersError } = useOrders(
+    user?.id,
+    5,
+    1,
+    10
+  );
+
+  useEffect(() => {
+    if (deliveredOrdersError) {
+      Alert.alert("Erreur", deliveredOrdersError);
+    }
+  }, [deliveredOrdersError]);
 
   const totalOrders = deliveredOrders.length;
-  const totalEarnings = deliveredOrders.reduce((sum, order) => sum + order.price, 0);
-  const lastOrderDate = deliveredOrders.length ? formatDate(new Date(deliveredOrders[deliveredOrders.length - 1].date)) : 'N/A';
+  const totalEarnings = deliveredOrders.reduce((sum, order) => sum + parseFloat(order.delivery_costs), 0);
+  const lastOrderDate = deliveredOrders.length ? formatDate(new Date(deliveredOrders[deliveredOrders.length - 1].created_at)) : 'N/A';
 
   const last7DaysData = getEarningsForLast7Days(deliveredOrders);
 
@@ -65,7 +71,7 @@ const StatsScreen = () => {
     ],
   };
 
-  const sortedOrders = [...deliveredOrders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedOrders = [...deliveredOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const displayedOrders = showAllOrders ? sortedOrders : sortedOrders.slice(0, 5);
 
@@ -75,7 +81,7 @@ const StatsScreen = () => {
         title="Récapitulatif"
         details={[
           { label: 'Commandes livrées', value: totalOrders.toString() },
-          { label: 'Total des gains', value: `${totalEarnings} €` },
+          { label: 'Total des gains', value: `${totalEarnings.toFixed(2)} €` },
           { label: 'Dernière commande livrée', value: lastOrderDate },
         ]}
         buttons={[]}
@@ -110,13 +116,14 @@ const StatsScreen = () => {
       <FlatList
         ListHeaderComponent={renderHeader}
         data={displayedOrders}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <CustomCard
-            title={item.restaurant}
+            title={item.restaurant.name}
             details={[
-              { label: 'Date', value: formatDate(new Date(item.date)) },
-              { label: 'Gain', value: `${item.price} €` },
+              { label: 'Date', value: formatDate(new Date(item.created_at)) },
+              { label: 'Gain', value: `${item.delivery_costs} €` },
+              { label: 'Client', value: `${item.client.first_name} ${item.client.last_name}` },
             ]}
             buttons={[]}
           />

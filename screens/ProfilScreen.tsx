@@ -3,8 +3,10 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import styles from '../assets/styles/ProfilStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useUser } from '../Context/UserContext';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }: any) {
+  const { user, logout } = useUser();
   const handleEditProfile = () => {
     console.log('Modifier infos personnelles');
   };
@@ -18,7 +20,8 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    console.log('Déconnexion');
+    logout();
+    navigation.navigate('Login');
   };
 
   return (

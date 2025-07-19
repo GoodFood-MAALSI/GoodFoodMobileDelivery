@@ -8,95 +8,101 @@ import CustomCard from '../components/CustomCard';
 import theme from '../assets/styles/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from '../assets/styles/HomeStyles';
+import { useAvailableOrders, useOrders } from '../hooks/orders/UseOrders';
+import { useUpdateOrderStatus } from '../hooks/orders/UseUpdateOrderStatus';
+import { useUser } from '../Context/UserContext';
+import { useCreateDelivery } from '../hooks/orders/UseCreateDelivery';
 
 const HomeScreen = ({ navigation }: any) => {
     const [isAvailable, setIsAvailable] = useState(true);
     const [currentLocation, setCurrentLocation] = useState<any>(null);
-    const [availableOrders, setAvailableOrders] = useState([
-        {
-            id: '1',
-            restaurant: 'Pizzeria Luigi',
-            restaurantAddress: '123 Rue des Lilas',
-            restaurantLocation: { latitude: 48.857, longitude: 2.351 },
-            clientAddress: '456 Rue des Tulipes',
-            clientLocation: { latitude: 48.860, longitude: 2.360 },
-            price: 8,
-        },
-        {
-            id: '2',
-            restaurant: 'Sushi Zen',
-            restaurantAddress: '45 Boulevard Haussmann',
-            restaurantLocation: { latitude: 48.859, longitude: 2.354 },
-            clientAddress: '789 Avenue des Champs',
-            clientLocation: { latitude: 48.862, longitude: 2.370 },
-            price: 15,
-        },
-    ]);
-    const [deliveredOrders, setDeliveredOrders] = useState<any[]>([
-        {
-            id: '3',
-            restaurant: 'Burger King',
-            restaurantAddress: '22 Rue des Écoles',
-            clientAddress: '12 Avenue de Paris',
-            price: 12,
-        },
-        {
-            id: '4',
-            restaurant: 'La Crêperie',
-            restaurantAddress: '10 Place de la République',
-            clientAddress: '5 Rue des Fleurs',
-            price: 10,
-        },
-    ]);
-    const [acceptedOrder, setAcceptedOrder] = useState<any>(null);
-    const [tab, setTab] = useState<'disponibles' | 'enCours' | 'livrees'>('disponibles');
+    const [tab, setTab] = useState<'Disponibles' | 'enCours' | 'enLivraison' | 'Livrees'>('Disponibles');
+    const { user } = useUser();
+    const delivererId = user?.id;
+    const { updateOrderStatus } = useUpdateOrderStatus();
+    const { createDelivery } = useCreateDelivery();
+
+    const { orders: availableOrders, refetch: refetchAvailableOrders } = useAvailableOrders(
+        currentLocation?.latitude,
+        currentLocation?.longitude,
+        10000,
+        1,
+        10
+    );
+
+    const { orders: acceptedOrders, refetch: refetchAcceptedOrders } = useOrders(
+        delivererId,
+        3,
+        1,
+        10
+    );
+
+    const { orders: orderToDeliver, refetch: refetchOrderToDeliver } = useOrders(
+        delivererId,
+        4,
+        1,
+        10
+    );
+
+    const { orders: deliveredOrders, refetch: refetchDeliveredOrders } = useOrders(
+        delivererId,
+        5,
+        1,
+        10
+    );
 
     useEffect(() => {
         (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
+            let { status } = await Location?.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission refusée', 'Impossible d’accéder à votre position.');
+                Alert?.alert('Permission refusée', 'Impossible d’accéder à votre position.');
                 return;
             }
-            let location = await Location.getCurrentPositionAsync({});
-            setCurrentLocation(location.coords);
+            let location = await Location?.getCurrentPositionAsync({});
+            setCurrentLocation(location?.coords);
         })();
     }, []);
 
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const toRad = (value: number) => (value * Math.PI) / 180;
-        const R = 6371;
-        const dLat = toRad(lat2 - lat1);
-        const dLon = toRad(lon2 - lon1);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    };
-
-    const handleAcceptOrder = (order: any) => {
-        if (acceptedOrder) {
-            Alert.alert('Action impossible', 'Vous avez déjà une commande en cours.');
+    const handleAcceptOrder = async (order: any) => {
+        if (acceptedOrders.length > 0 || orderToDeliver.length > 0) {
+            Alert.alert(
+                'Action impossible',
+                "Vous avez une commande en cours. Veuillez terminer la commande avant d'en commencer une nouvelle."
+            );
             return;
         }
-        setAcceptedOrder(order);
-        setAvailableOrders(availableOrders.filter((item) => item.id !== order.id));
-        Alert.alert('Commande acceptée', `Vous avez accepté la commande de ${order.restaurant}.`);
+        await createDelivery(order?.id, 1, 1);
+        Alert.alert('Commande acceptée', `Vous avez accepté la commande de ${order?.client?.first_name} ${order?.client?.last_name} au restaurant: ${order?.restaurant?.name}.`);
         setTab('enCours');
+
+        refetchAcceptedOrders();
+        refetchAvailableOrders();
     };
 
-    const handleDeliveredOrder = () => {
-        if (acceptedOrder) {
-            setDeliveredOrders([...deliveredOrders, acceptedOrder]);
-            setAcceptedOrder(null);
-            Alert.alert('Commande livrée', 'Vous pouvez maintenant accepter une nouvelle commande.');
-            setTab('livrees');
+    const handleGetOrder = async (order: any) => {
+        if (acceptedOrders.length > 0) {
+            await updateOrderStatus(order?.id, 4);
+            Alert.alert('Commande récupérée', 'Vous pouvez maintenant la livrer au client.');
+            setTab('enLivraison');
+
+            refetchAcceptedOrders();
+            refetchOrderToDeliver();
         }
     };
 
-    const handleCancelOrder = () => {
-        if (!acceptedOrder) return;
+    const handleDeliveredOrder = async (order: any) => {
+        if (orderToDeliver.length > 0) {
+            await updateOrderStatus(order?.id, 5);
+            Alert.alert('Commande livrée', 'Vous pouvez maintenant accepter une nouvelle commande.');
+            setTab('Livrees');
+
+            refetchOrderToDeliver();
+            refetchDeliveredOrders();
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        if (acceptedOrders.length === 0) return;
 
         Alert.alert(
             "Annulation",
@@ -109,18 +115,20 @@ const HomeScreen = ({ navigation }: any) => {
                 {
                     text: "Oui",
                     onPress: () => {
-                        setAvailableOrders((prevOrders) => [...prevOrders, acceptedOrder]);
-                        setAcceptedOrder(null);
                         Alert.alert("Commande annulée", "Vous pouvez accepter une nouvelle commande.");
-                        setTab("disponibles");
+                        setTab("Disponibles");
+
+                        refetchAvailableOrders();
+                        refetchAcceptedOrders();
                     },
                 },
             ]
         );
     };
 
+
     const handleToggleAvailability = () => {
-        if (acceptedOrder && isAvailable) {
+        if ((acceptedOrders.length > 0 || orderToDeliver.length > 0) && isAvailable) {
             Alert.alert(
                 'Action impossible',
                 'Vous avez une commande en cours. Veuillez terminer la commande avant de vous rendre indisponible.'
@@ -149,116 +157,232 @@ const HomeScreen = ({ navigation }: any) => {
 
             <CustomTabs
                 tabs={[
-                    { key: 'disponibles', label: 'Commandes disponibles' },
-                    { key: 'enCours', label: 'Commande en cours' },
-                    { key: 'livrees', label: 'Commandes livrées' }
+                    { key: 'Disponibles', label: 'Commandes disponibles' },
+                    { key: 'enCours', label: 'Commande en préparation' },
+                    { key: 'enLivraison', label: 'Commande à livrer' },
+                    { key: 'Livrees', label: 'Commandes livrées' }
                 ]}
                 activeTab={tab}
                 onTabChange={setTab}
             />
 
             <MapView
-                key={acceptedOrder ? acceptedOrder.id : 'default'}
+                key={acceptedOrders ? acceptedOrders?.id : 'default'}
                 style={styles.map}
                 region={{
-                    latitude: acceptedOrder?.restaurantLocation?.latitude || currentLocation?.latitude,
-                    longitude: acceptedOrder?.restaurantLocation?.longitude || currentLocation?.longitude,
+                    latitude: currentLocation?.latitude || 50.6357,
+                    longitude: currentLocation?.longitude || 3.0601,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
-                }
-                }
+                }}
             >
-                {acceptedOrder && (
-                    <>
-                        <Marker
-                            coordinate={acceptedOrder.restaurantLocation}
-                            title={`Restaurant: ${acceptedOrder.restaurant}`}
-                            description={`Adresse: ${acceptedOrder.restaurantAddress}`}
-                            pinColor="green"
-                        />
-                        <Marker
-                            coordinate={acceptedOrder.clientLocation}
-                            title="Adresse client"
-                            description={`Adresse: ${acceptedOrder.clientAddress}`}
-                            pinColor="red"
-                        />
-                    </>
-                )}
                 {currentLocation && (
                     <Marker coordinate={currentLocation} title="Votre position" pinColor="blue" />
                 )}
+                {acceptedOrders && acceptedOrders.map((order) => {
+                    const clientLocation = {
+                        latitude: parseFloat(order.lat),
+                        longitude: parseFloat(order.long),
+                    };
+                    return (
+                        <Marker
+                            key={order.id + '_client'}
+                            coordinate={clientLocation}
+                            title="Adresse client"
+                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
+                            pinColor="red"
+                        />
+                    );
+                })}
+                {/* {acceptedOrders && acceptedOrders.map((order) => {
+                    const restaurantLocation = {
+                        latitude: parseFloat(order.restaurant?.lat),
+                        longitude: parseFloat(order.restaurant?.long),
+                    };
+                    return (
+                        <Marker
+                            key={order.id}
+                            coordinate={restaurantLocation}
+                            title={`Restaurant: ${order.restaurant?.name}`}
+                            description={`Adresse: ${order.restaurant?.street_number} ${order.restaurant?.street}, ${order.restaurant?.city} ${order.restaurant?.postal_code}, ${order.restaurant?.country}`}
+                            pinColor="green"
+                        />
+                    );
+                })}
+
+                {orderToDeliver && orderToDeliver.map((order) => {
+                    const clientLocation = {
+                        latitude: parseFloat(order.lat),
+                        longitude: parseFloat(order.long),
+                    };
+                    return (
+                        <Marker
+                            key={order.id + '_client'}
+                            coordinate={clientLocation}
+                            title="Adresse client"
+                            description={`Adresse: ${order.street_number} ${order.street}, ${order.city} ${order.postal_code}, ${order.country}`}
+                            pinColor="red"
+                        />
+                    );
+                })} */}
             </MapView>
 
-            <View style={styles.ordersContainer}>
-                {tab === 'disponibles' && (
-                    <>
-                        {isAvailable ? (
-                            <>
-                                <Text style={styles.ordersTitle}>Commandes disponibles</Text>
-                                <FlatList
-                                    data={availableOrders}
-                                    keyExtractor={(item) => item.id}
-                                    renderItem={({ item }) => (
-                                        <CustomCard
-                                            title={item.restaurant}
-                                            details={[
-                                                { label: 'Adresse du restaurant', value: item.restaurantAddress },
-                                                { label: 'Adresse client', value: item.clientAddress },
-                                                { label: 'Gain', value: `${item.price} €` },
-                                            ]}
-                                            buttons={[
-                                                { text: 'Accepter', onPress: () => handleAcceptOrder(item), backgroundColor: theme.colors.success },
-                                            ]}
-                                        />
-                                    )}
-                                />
-                            </>
-                        ) : (
-                            <View style={styles.unavailableContainer}>
-                                <Text style={styles.unavailableText}>
-                                    Pour voir les commandes disponibles, veuillez mettre à jour votre statut.
-                                </Text>
-                            </View>
-                        )}
-                    </>
-                )}
 
-                {tab === 'enCours' && acceptedOrder && (
+            <View style={styles.ordersContainer}>
+                {tab === 'Disponibles' && isAvailable && (
                     <>
-                        <Text style={styles.ordersTitle}>Commande en cours</Text>
-                        <CustomCard
-                            title={acceptedOrder.restaurant}
-                            details={[
-                                { label: 'Adresse du restaurant', value: acceptedOrder.restaurantAddress },
-                                { label: 'Adresse client', value: acceptedOrder.clientAddress },
-                                { label: 'Gain', value: `${acceptedOrder.price} €` },
-                            ]}
-                            buttons={[
-                                { text: 'Livré', onPress: handleDeliveredOrder, backgroundColor: theme.colors.primary },
-                                { text: 'Annulé', onPress: handleCancelOrder, backgroundColor: theme.colors.danger }
-                            ]}
+                        <Text style={styles.ordersTitle}>Commandes disponibles</Text>
+                        <FlatList
+                            data={availableOrders}
+                            keyExtractor={(item) => item?.id.toString()}
+                            renderItem={({ item }) => {
+                                const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
+                                const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
+
+                                return (
+                                    <CustomCard
+                                        title={item?.restaurant?.name}
+                                        details={[
+                                            {
+                                                label: 'Adresse du restaurant',
+                                                value: restaurantAddress
+                                            },
+                                            {
+                                                label: 'Adresse client',
+                                                value: clientAddress
+                                            },
+                                            {
+                                                label: 'Gain',
+                                                value: `${item?.delivery_costs} €`
+                                            },
+                                        ]}
+                                        buttons={[
+                                            {
+                                                text: 'Accepter',
+                                                onPress: () => handleAcceptOrder(item),
+                                                backgroundColor: theme.colors.success,
+                                            },
+                                        ]}
+                                    />
+                                );
+                            }}
                         />
                     </>
                 )}
+                {tab === 'enCours' && acceptedOrders && (
+                    <>
+                        <Text style={styles.ordersTitle}>Commande en cours</Text>
+                        <FlatList
+                            data={acceptedOrders}
+                            keyExtractor={(item) => item?.id.toString()}
+                            renderItem={({ item }) => {
+                                const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
+                                const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
 
-                {tab === 'livrees' && (
+                                return (
+                                    <CustomCard
+                                        title={item?.restaurant?.name}
+                                        details={[
+                                            {
+                                                label: 'Adresse du restaurant',
+                                                value: restaurantAddress
+                                            },
+                                            {
+                                                label: 'Adresse client',
+                                                value: clientAddress
+                                            },
+                                            {
+                                                label: 'Gain',
+                                                value: `${item?.delivery_costs} €`
+                                            },
+                                        ]}
+                                        buttons={[
+                                            {
+                                                text: 'Récupérer',
+                                                onPress: () => handleGetOrder(item),
+                                                backgroundColor: theme.colors.primary
+                                            },
+                                            {
+                                                text: 'Annuler',
+                                                onPress: handleCancelOrder,
+                                                backgroundColor: theme.colors.danger
+                                            }
+                                        ]}
+                                    />
+                                );
+                            }}
+                        />
+                    </>
+                )}
+                {tab === 'enLivraison' && orderToDeliver && (
+                    <>
+                        <Text style={styles.ordersTitle}>Commande à livrer</Text>
+                        <FlatList
+                            data={orderToDeliver}
+                            keyExtractor={(item) => item?.id.toString()}
+                            renderItem={({ item }) => {
+                                const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
+                                const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
+
+                                return (
+                                    <CustomCard
+                                        title={item?.restaurant?.name}
+                                        details={[
+                                            {
+                                                label: 'Adresse du restaurant',
+                                                value: restaurantAddress
+                                            },
+                                            {
+                                                label: 'Adresse client',
+                                                value: clientAddress
+                                            },
+                                            {
+                                                label: 'Gain',
+                                                value: `${item?.delivery_costs} €`
+                                            },
+                                        ]}
+                                        buttons={[
+                                            { text: 'Livrer', onPress: () => handleDeliveredOrder(item), backgroundColor: theme.colors.primary },
+                                            { text: 'Annuler', onPress: handleCancelOrder, backgroundColor: theme.colors.danger }
+                                        ]}
+                                    />
+                                );
+                            }}
+                        />
+                    </>
+                )}
+                {tab === 'Livrees' && (
                     <>
                         <Text style={styles.ordersTitle}>Commandes livrées</Text>
                         <FlatList
                             data={deliveredOrders}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <CustomCard
-                                    title={item.restaurant}
-                                    details={[
-                                        { label: 'Adresse client', value: item.clientAddress },
-                                        { label: 'Gain', value: `${item.price} €` },
-                                    ]}
-                                    buttons={[]}
-                                />
-                            )}
-                        />
+                            keyExtractor={(item) => item?.id.toString()}
+                            renderItem={({ item }) => {
+                                const restaurantAddress = `${item?.restaurant?.street_number} ${item?.restaurant?.street}, ${item?.restaurant?.city} ${item?.restaurant?.postal_code}, ${item?.restaurant?.country}`;
+                                const clientAddress = `${item?.street_number} ${item?.street}, ${item?.city} ${item?.postal_code}, ${item?.country}`;
 
+                                return (
+                                    <CustomCard
+                                        title={item?.restaurant?.name}
+                                        details={[
+                                            {
+                                                label: 'Adresse du restaurant',
+                                                value: restaurantAddress
+                                            },
+                                            {
+                                                label: 'Adresse client',
+                                                value: clientAddress
+                                            },
+                                            {
+                                                label: 'Gain',
+                                                value: `${item?.delivery_costs} €`
+                                            },
+                                        ]}
+                                        buttons={[]}
+                                    />
+                                );
+                            }}
+                        />
                     </>
                 )}
             </View>
