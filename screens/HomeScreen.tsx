@@ -13,21 +13,21 @@ import { useUpdateOrderStatus } from '../hooks/orders/UseUpdateOrderStatus';
 import { useUser } from '../Context/UserContext';
 import { useCreateDelivery } from '../hooks/orders/UseCreateDelivery';
 import { useVerifyDeliveryCode } from '../hooks/orders/UseVerifyCode';
+import useTracking from '../hooks/tracking/UseTracking';
 
-// Fonction pour calculer la distance en km entre deux points
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Rayon de la Terre en kilomètres
-    const dLat = (lat2 - lat1) * (Math.PI / 180); // Conversion en radians
-    const dLon = (lon2 - lon1) * (Math.PI / 180); // Conversion en radians
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
 
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; // Distance en kilomètres
+    const distance = R * c;
 
-    return distance; // Retourne la distance en kilomètres
+    return distance;
 };
 
 const HomeScreen = ({ navigation }: any) => {
@@ -42,6 +42,7 @@ const HomeScreen = ({ navigation }: any) => {
     const { updateOrderStatus } = useUpdateOrderStatus();
     const { createDelivery } = useCreateDelivery();
     const { verifyDeliveryCode, result } = useVerifyDeliveryCode();
+    const { startTracking, stopTracking } = useTracking(delivererId);
 
     const { orders: availableOrders, refetch: refetchAvailableOrders } = useAvailableOrders(
         50.6357,
@@ -92,9 +93,10 @@ const HomeScreen = ({ navigation }: any) => {
             );
             return;
         }
-        await createDelivery(order?.id, 1, 1);
+        const data = await createDelivery(order?.id, 1, 1);
         Alert.alert('Commande acceptée', `Vous avez accepté la commande de ${order?.client?.first_name} ${order?.client?.last_name} au restaurant: ${order?.restaurant?.name}.`);
         setTab('enCours');
+        startTracking(data?.data?.id);
 
         refetchAcceptedOrders();
         refetchAvailableOrders();
@@ -128,6 +130,7 @@ const HomeScreen = ({ navigation }: any) => {
                 refetchOrderToDeliver();
                 refetchDeliveredOrders();
                 setModalVisible(false);
+                stopTracking();
             } else {
                 Alert.alert('Erreur', 'Le code de vérification est incorrect.');
             }
